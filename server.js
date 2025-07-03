@@ -1,7 +1,6 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
-import { exec } from "child_process";
 import cors from "cors";
 import { execPromise } from "./utils.js";
 import { getSummaryAndTags } from "./lib/gemini.js";
@@ -24,6 +23,7 @@ app.post("/transcribe", async (req, res) => {
   const audioDir = path.resolve("audio");
   const audioPath = path.join(audioDir, `${filename}.mp3`);
   const txtPath = path.join(audioDir, `${filename}.txt`);
+  const ytDlpPath = path.resolve("bin", "yt-dlp"); // ✅ Local yt-dlp binary
 
   try {
     // Ensure audio directory exists
@@ -31,16 +31,16 @@ app.post("/transcribe", async (req, res) => {
       fs.mkdirSync(audioDir);
     }
 
-    // 1. Download audio using yt-dlp
+    // ✅ 1. Download audio using local yt-dlp
     console.log("🎧 Downloading audio...");
-    await execPromise(`yt-dlp --extract-audio --audio-format mp3 -o "${audioPath}" "${url}"`);
+    await execPromise(`"${ytDlpPath}" --extract-audio --audio-format mp3 -o "${audioPath}" "${url}"`);
 
-    // 2. Transcribe using whisper.cpp
+    // ✅ 2. Transcribe using whisper.cpp
     console.log("🧠 Transcribing with whisper.cpp...");
     const whisperCmd = `./whisper-cli -m models/ggml-base.en.bin -f "${audioPath}" -otxt -of "${path.join(audioDir, filename)}"`;
     await execPromise(whisperCmd);
 
-    // 3. Read and process transcription
+    // ✅ 3. Read and process transcription
     console.log("📖 Reading transcription...");
     const transcription = fs.readFileSync(txtPath, "utf-8");
 
