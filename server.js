@@ -23,7 +23,8 @@ app.post("/transcribe", async (req, res) => {
   const audioDir = path.resolve("audio");
   const audioPath = path.join(audioDir, `${filename}.mp3`);
   const txtPath = path.join(audioDir, `${filename}.txt`);
-  const ytDlpPath = path.resolve("bin", "yt-dlp"); // ✅ Local yt-dlp binary
+  const ytDlpPath = path.resolve("bin", "yt-dlp"); // local yt-dlp binary
+  const cookiesPath = path.resolve("cookies.txt");
 
   try {
     // Ensure audio directory exists
@@ -31,9 +32,10 @@ app.post("/transcribe", async (req, res) => {
       fs.mkdirSync(audioDir);
     }
 
-    // ✅ 1. Download audio using local yt-dlp
-    console.log("🎧 Downloading audio...");
-    await execPromise(`"${ytDlpPath}" --extract-audio --audio-format mp3 -o "${audioPath}" "${url}"`);
+    // ✅ 1. Download audio using yt-dlp + cookies
+    console.log("🎧 Downloading audio with yt-dlp and cookies...");
+    const ytDlpCommand = `"${ytDlpPath}" --cookies "${cookiesPath}" --extract-audio --audio-format mp3 -o "${audioPath}" "${url}"`;
+    await execPromise(ytDlpCommand);
 
     // ✅ 2. Transcribe using whisper.cpp
     console.log("🧠 Transcribing with whisper.cpp...");
@@ -44,6 +46,7 @@ app.post("/transcribe", async (req, res) => {
     console.log("📖 Reading transcription...");
     const transcription = fs.readFileSync(txtPath, "utf-8");
 
+    // ✅ 4. Get summary & tags using Gemini
     console.log("🤖 Getting summary and tags...");
     const summary = await getSummaryAndTags(transcription);
 
